@@ -92,6 +92,10 @@ export const AdminManagement: React.FC = () => {
         </div>
       </div>
 
+      <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-md text-sm">
+        <strong>How to add a new admin:</strong> Have the new user register via the public registration page. Their account will appear here as "Pending" for you to approve and assign a role.
+      </div>
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
           {error}
@@ -156,7 +160,7 @@ export const AdminManagement: React.FC = () => {
               <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={() => setEditingUser(null)}></div>
             </div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <div>
                 <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
                   Edit User: {editingUser.full_name}
