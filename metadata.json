@@ -1,0 +1,5 @@
+{
+  "name": "EduManage - Student Management System",
+  "description": "A secure student data handling website with role-based access control, department isolation, and background Google Sheets sync.",
+  "requestFramePermissions": []
+}
