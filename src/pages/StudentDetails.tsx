@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Student, Department, DEPARTMENT_LABELS } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, ArrowLeft, Edit, Trash2, User, Phone, Mail, MapPin, Calendar, CreditCard } from 'lucide-react';
+import { Loader2, ArrowLeft, Edit, Trash2, User, Phone, Mail, MapPin, Calendar, CreditCard, AlertTriangle } from 'lucide-react';
 
 export const StudentDetails: React.FC = () => {
   const { id, department } = useParams<{ id: string, department: string }>();
@@ -13,6 +13,7 @@ export const StudentDetails: React.FC = () => {
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     fetchStudent();
@@ -46,10 +47,8 @@ export const StudentDetails: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!student || !window.confirm(`Are you sure you want to delete ${student.name}? This action cannot be undone.`)) {
-      return;
-    }
+  const confirmDelete = async () => {
+    if (!student) return;
 
     try {
       const { error } = await supabase
@@ -66,7 +65,8 @@ export const StudentDetails: React.FC = () => {
 
       navigate(`/students/${student.department}`);
     } catch (err: any) {
-      alert(`Error deleting student: ${err.message}`);
+      setError(`Error deleting student: ${err.message}`);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -113,7 +113,7 @@ export const StudentDetails: React.FC = () => {
           </Link>
           {profile?.role === 'super_admin' && (
             <button
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
               <Trash2 className="h-4 w-4 mr-2" />
@@ -189,6 +189,51 @@ export const StudentDetails: React.FC = () => {
           </dl>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={() => setShowDeleteConfirm(false)}></div>
+            </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div className="sm:flex sm:items-start">
+                <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Delete Student
+                  </h3>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      Are you sure you want to delete <strong>{student.name}</strong>? This action cannot be undone and will permanently remove the student from the database.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
