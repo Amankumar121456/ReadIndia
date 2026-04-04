@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Student, Department, DEPARTMENT_LABELS } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
+import { Loader2, Plus, Search, Edit, Trash2, Eye, AlertTriangle } from 'lucide-react';
 
 export const StudentList: React.FC = () => {
   const { department } = useParams<{ department: string }>();
@@ -14,6 +14,7 @@ export const StudentList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [studentToDelete, setStudentToDelete] = useState<{id: string, name: string} | null>(null);
 
   // Verify access
   useEffect(() => {
@@ -49,27 +50,31 @@ export const StudentList: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteClick = (id: string, name: string) => {
+    setStudentToDelete({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!studentToDelete) return;
 
     try {
       const { error } = await supabase
         .from('students')
         .delete()
-        .eq('id', id);
+        .eq('id', studentToDelete.id);
 
       if (error) throw error;
       
       // Trigger background sync
       import('../lib/supabase').then(({ syncToGoogleSheets }) => {
-        syncToGoogleSheets('DELETE', 'students', { id });
+        syncToGoogleSheets('DELETE', 'students', { id: studentToDelete.id });
       });
 
-      setStudents(students.filter(s => s.id !== id));
+      setStudents(students.filter(s => s.id !== studentToDelete.id));
+      setStudentToDelete(null);
     } catch (err: any) {
-      alert(`Error deleting student: ${err.message}`);
+      setError(`Error deleting student: ${err.message}`);
+      setStudentToDelete(null);
     }
   };
 
@@ -195,7 +200,7 @@ export const StudentList: React.FC = () => {
                         </Link>
                         {profile?.role === 'super_admin' && (
                           <button
-                            onClick={() => handleDelete(student.id, student.name)}
+                            onClick={() => handleDeleteClick(student.id, student.name)}
                             className="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded-md"
                             title="Delete"
                           >
@@ -211,6 +216,51 @@ export const StudentList: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {studentToDelete && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={() => setStudentToDelete(null)}></div>
+            </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div className="sm:flex sm:items-start">
+                <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Delete Student
+                  </h3>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      Are you sure you want to delete <strong>{studentToDelete.name}</strong>? This action cannot be undone and will permanently remove the student from the database.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStudentToDelete(null)}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
