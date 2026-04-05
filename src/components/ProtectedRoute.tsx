@@ -3,13 +3,14 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 interface ProtectedRouteProps {
-  allowedRoles?: ('super_admin' | 'sub_admin' | 'pending')[];
+  allowedRoles?: ('super_admin' | 'admin' | 'sub_admin' | 'pending')[];
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
 
+  // 🔄 Loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -18,18 +19,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
     );
   }
 
+  // ❌ Not logged in
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // ⚠️ No profile (treat as pending)
   if (!profile) {
-    // If user is authenticated but no profile exists yet, treat as pending
     if (allowedRoles && !allowedRoles.includes('pending')) {
       return <Navigate to="/pending" replace />;
     }
     return <Outlet />;
   }
 
+  // ⛔ Pending user
   if (profile.role === 'pending') {
     if (location.pathname !== '/pending') {
       return <Navigate to="/pending" replace />;
@@ -37,9 +40,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
     return <Outlet />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(profile.role)) {
+  // ✅ MAIN FIX (admin add kiya + clean logic)
+  const defaultAllowedRoles = ['super_admin', 'admin', 'sub_admin'];
+
+  const rolesToCheck = allowedRoles || defaultAllowedRoles;
+
+  if (!rolesToCheck.includes(profile.role)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
+  // ✅ All good
   return <Outlet />;
 };
